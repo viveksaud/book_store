@@ -1,16 +1,22 @@
 const Book = require("../modals/bookModel");
 const { Op } = require("sequelize");
+const textConstants = require("../constants/textConstants.js");
+const urlConstants = require("../constants/urlConstants.js");
 
 class BookController {
   async addBook(req, res, imageName) {
+    try{
     const data = await Book.create({ ...req.body, image: imageName });
-    console.log(data);
+    // console.log(data);
     if (data) res.json(data);
     else
       res.json({
         sucess: false,
         message: "Book not added!!!Error during adding the book.",
       });
+    }catch{
+       res.json({success:false, message: "Error while querying in database!!!"});
+    }
   }
 
   async getBook(req, res) {
@@ -28,14 +34,31 @@ class BookController {
     let { limit } = req.query;
     if (!limit) limit = 20;
 
+    try{
     if (limit) {
       const data = await Book.findAll({
-        limit: limit,
+        limit: parseInt(limit),
+        raw: true, 
       });
-      data ? res.json(data) : res.json([]);
+      // data ? res.json(data) : res.json([]);
+      // console.log(data);
+      for (let d of data) {
+        // console.log(d);
+        // console.log(d.dataValues);
+        // d.dataValues='abc'+d.dataValues;
+        // d.dataValues.image='http://localhost:9000/uploads/' + d.dataValues.image;
+        // d.dataValues.image=urlConstants.IMG_PATH_URL + d.dataValues.image;
+        d.image=urlConstants.IMG_PATH_URL + d.image;//work of dataValues is done by raw:true
+        // console.log(d.dataValues.image);
+      }
+      res.json(data);
     } else {
       res.json({ success: false, message: "Book list is empty" });
     }
+  }catch(err){
+    return res.json({ success: false, message: err.message});
+  }
+    
   }
 
   async searchBook(req, res) {
@@ -54,8 +77,12 @@ class BookController {
               // },
             },
           },
+          raw: true
         });
-        console.log(data);
+        // console.log(data);
+        for (let d of data) {
+          d.image = urlConstants.IMG_PATH_URL + d.image; 
+        }
         res.json(data);
       } catch (error) {
         console.error(error);
@@ -79,7 +106,7 @@ class BookController {
         ? res.json({ success: true, message: "Updated Book" })
         : res.json({ success: false, message: "Coudn't Update Book" });
     } else {
-      res.json({ sucess: false, message: "Book ID Not provided" });
+      res.json({ sucess: false, message: textConstants.BOOK_ID_NOT_PROVIDED });
     }
   }
 
@@ -97,7 +124,7 @@ class BookController {
         ? res.json({ success: true, message: "Deleted Book" })
         : res.json({ success: false, message: "Coudn't Delete the Book" });
     } else {
-      res.json({ sucess: false, message: "Book ID Not provided" });
+      res.json({ sucess: false, message: textConstants.BOOK_ID_NOT_PROVIDED  });
     }
   }
 }
